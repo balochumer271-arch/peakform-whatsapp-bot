@@ -11,14 +11,14 @@ app.use(express.json());
 // --- Database Connection ---
 mongoose.connect(process.env.MONGO_URL)
     .then(() => console.log("✅ MongoDB Connected Successfully!"))
-    .catch((err) => console.log("❌ DB Connection Error:", err));
+    .catch((err) => console.log("❌ DB Connection Error:", err.message));
 
 const Group = mongoose.model('Group', { groupId: String, currentDay: { type: Number, default: 1 }, status: String });
 const Content = mongoose.model('Content', { day: Number, text: String });
 
-// --- WhatsApp Logic (RAM Optimized for Railway) ---
+// --- WhatsApp Logic (Railway Dynamic Path) ---
 const client = new Client({
-    authStrategy: new LocalAuth(), // Session storage in local folder
+    authStrategy: new LocalAuth(),
     puppeteer: { 
         headless: true, 
         args: [
@@ -26,11 +26,10 @@ const client = new Client({
             '--disable-setuid-sandbox', 
             '--disable-dev-shm-usage',
             '--disable-gpu',
-            '--no-zygote',
-            '--single-process' // RAM bachaane ke liye sabse aham
+            '--no-zygote'
         ],
-        executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome-stable'
-
+        // Railway pe Chrome dhoondne ka sabse pakka tareeka
+        executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome-stable' || '/usr/bin/google-chrome'
     }
 });
 
@@ -49,15 +48,12 @@ client.on('ready', () => {
 client.on('disconnected', (reason) => {
     currentQR = "";
     console.log("⚠️ Client was logged out:", reason);
-    client.initialize(); // Auto restart if disconnected
+    setTimeout(() => client.initialize(), 5000); // Auto restart
 });
 
-// --- API Routes for Blogger ---
-
-// Status Check
+// --- API Routes ---
 app.get('/status', (req, res) => res.json({ qr: currentQR }));
 
-// Group List for Dashboard
 app.get('/groups', async (req, res) => {
     try {
         const chats = await client.getChats();
@@ -66,19 +62,15 @@ app.get('/groups', async (req, res) => {
             id: g.id._serialized 
         }));
         res.json(groups);
-    } catch (e) { 
-        res.json([]); 
-    }
+    } catch (e) { res.json([]); }
 });
 
-// Add Group to Automation
 app.post('/add-group', async (req, res) => {
     const { groupId } = req.body;
     await Group.findOneAndUpdate({ groupId }, { groupId, currentDay: 1, status: 'active' }, { upsert: true });
     res.json({ success: true });
 });
 
-// Save Daily Plan
 app.post('/save-plan', async (req, res) => {
     const { day, text } = req.body;
     await Content.findOneAndUpdate({ day }, { day, text }, { upsert: true });
@@ -97,17 +89,13 @@ cron.schedule('0 10 * * *', async () => {
                     await client.sendMessage(g.groupId, plan.text);
                     g.currentDay++;
                     await g.save();
-                    console.log(`✅ Message sent to ${g.groupId} (Day ${g.currentDay-1})`);
-                } catch (err) { 
-                    console.log(`❌ Failed to send to ${g.groupId}:`, err.message); 
-                }
+                } catch (err) { console.log(`❌ Error: ${err.message}`); }
             }
         }
     }
 });
 
-// Initialize Client
-client.initialize().catch(err => console.log("❌ Init Error:", err));
+client.initialize().catch(err => console.log("❌ Init Error:", err.message));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`📡 Server heartbeat on port ${PORT}`));
