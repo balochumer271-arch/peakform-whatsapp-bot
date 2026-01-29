@@ -1,0 +1,18 @@
+{
+  "name": "peakform-whatsapp-bot",
+  "version": "1.0.0",
+  "description": "WhatsApp Automation with Blogger Dashboard",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "whatsapp-web.js": "latest",
+    "qrcode": "latest",
+    "express": "latest",
+    "mongoose": "latest",
+    "node-cron": "latest",
+    "cors": "latest",
+    "body-parser": "latest"
+  }
+}
