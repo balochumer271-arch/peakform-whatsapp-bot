@@ -29,7 +29,8 @@ const client = new Client({
             '--no-zygote',
             '--single-process' // RAM bachaane ke liye sabse aham
         ],
-        executablePath: '/usr/bin/google-chrome-stable'
+        executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome-stable'
+
     }
 });
 
