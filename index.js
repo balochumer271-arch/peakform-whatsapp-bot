@@ -19,38 +19,22 @@ const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: { 
         headless: true, 
-        args: [
-            '--no-sandbox', 
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage'
-        ],
-        // Ye path Railway par Chrome dhoondne mein madad karta hai
-        executablePath: '/usr/bin/google-chrome-stable'
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+        executablePath: '/usr/bin/google-chrome-stable' // Railway Chrome Path
     }
 });
 
 let currentQR = "";
-client.on('qr', (qr) => { 
-    currentQR = qr; 
-    console.log("QR Code Generated! Please scan on Blogger.");
-});
-
-client.on('ready', () => { 
-    currentQR = "CONNECTED"; 
-    console.log("WhatsApp Client is Ready!"); 
-});
+client.on('qr', (qr) => { currentQR = qr; console.log("QR Generated!"); });
+client.on('ready', () => { currentQR = "CONNECTED"; console.log("Bot Ready!"); });
 
 // --- API Routes ---
 app.get('/status', (req, res) => res.json({ qr: currentQR }));
 
-// Groups list fetch karne ka route
 app.get('/groups', async (req, res) => {
     try {
         const chats = await client.getChats();
-        const groups = chats.filter(chat => chat.isGroup).map(g => ({ 
-            name: g.name, 
-            id: g.id._serialized 
-        }));
+        const groups = chats.filter(chat => chat.isGroup).map(g => ({ name: g.name, id: g.id._serialized }));
         res.json(groups);
     } catch (e) { res.json([]); }
 });
@@ -67,23 +51,6 @@ app.post('/save-plan', async (req, res) => {
     res.json({ success: true });
 });
 
-// --- Automation Engine (10 AM Daily) ---
-cron.schedule('0 10 * * *', async () => {
-    const groups = await Group.find({ status: 'active' });
-    for (let g of groups) {
-        if (g.currentDay <= 15) {
-            const plan = await Content.findOne({ day: g.currentDay });
-            if (plan) {
-                try {
-                    await client.sendMessage(g.groupId, plan.text);
-                    g.currentDay++;
-                    await g.save();
-                } catch (e) { console.log("Failed to send message to group."); }
-            }
-        }
-    }
-});
-
 client.initialize();
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server on port ${PORT}`));
