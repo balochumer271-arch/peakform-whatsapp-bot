@@ -16,20 +16,22 @@ mongoose.connect(process.env.MONGO_URL)
 const Group = mongoose.model('Group', { groupId: String, currentDay: { type: Number, default: 1 }, status: String });
 const Content = mongoose.model('Content', { day: Number, text: String });
 
-// --- WhatsApp Logic (Railway Dynamic Path) ---
+// --- WhatsApp Logic (Docker & Render Optimized) ---
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: { 
         headless: true, 
+        // Docker environment ke liye ye args zaroori hain
         args: [
             '--no-sandbox', 
             '--disable-setuid-sandbox', 
             '--disable-dev-shm-usage',
             '--disable-gpu',
-            '--no-zygote'
+            '--no-zygote',
+            '--single-process'
         ],
-        // Railway pe Chrome dhoondne ka sabse pakka tareeka
-        executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome-stable' || '/usr/bin/google-chrome'
+        // Ye path naye Dockerfile ke mutabik hy
+        executablePath: '/usr/bin/google-chrome-stable'
     }
 });
 
@@ -48,7 +50,10 @@ client.on('ready', () => {
 client.on('disconnected', (reason) => {
     currentQR = "";
     console.log("⚠️ Client was logged out:", reason);
-    setTimeout(() => client.initialize(), 5000); // Auto restart
+    // Restart logic
+    setTimeout(() => {
+        client.initialize().catch(err => console.log("❌ Restart Error:", err.message));
+    }, 5000);
 });
 
 // --- API Routes ---
@@ -80,21 +85,25 @@ app.post('/save-plan', async (req, res) => {
 // --- Automation Engine (Every Day at 10 AM) ---
 cron.schedule('0 10 * * *', async () => {
     console.log("⏰ Running Daily Sequence...");
-    const groups = await Group.find({ status: 'active' });
-    for (let g of groups) {
-        if (g.currentDay <= 15) {
-            const plan = await Content.findOne({ day: g.currentDay });
-            if (plan) {
-                try {
+    try {
+        const groups = await Group.find({ status: 'active' });
+        for (let g of groups) {
+            if (g.currentDay <= 15) {
+                const plan = await Content.findOne({ day: g.currentDay });
+                if (plan) {
                     await client.sendMessage(g.groupId, plan.text);
                     g.currentDay++;
                     await g.save();
-                } catch (err) { console.log(`❌ Error: ${err.message}`); }
+                    console.log(`✅ Sent Day ${g.currentDay-1} to Group: ${g.groupId}`);
+                }
             }
         }
+    } catch (err) {
+        console.log("❌ Automation Error:", err.message);
     }
 });
 
+// Initializing with Error Catching
 client.initialize().catch(err => console.log("❌ Init Error:", err.message));
 
 const PORT = process.env.PORT || 3000;
