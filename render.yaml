@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: peakform-bot
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: MONGO_URL
+        sync: false
+      - key: PORT
+        value: 3000
