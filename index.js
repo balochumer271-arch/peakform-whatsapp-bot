@@ -21,7 +21,6 @@ const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: { 
         headless: true, 
-        // Docker environment ke liye ye args zaroori hain
         args: [
             '--no-sandbox', 
             '--disable-setuid-sandbox', 
@@ -30,7 +29,6 @@ const client = new Client({
             '--no-zygote',
             '--single-process'
         ],
-        // Ye path naye Dockerfile ke mutabik hy
         executablePath: '/usr/bin/google-chrome-stable'
     }
 });
@@ -50,15 +48,17 @@ client.on('ready', () => {
 client.on('disconnected', (reason) => {
     currentQR = "";
     console.log("⚠️ Client was logged out:", reason);
-    // Restart logic
     setTimeout(() => {
         client.initialize().catch(err => console.log("❌ Restart Error:", err.message));
     }, 5000);
 });
 
 // --- API Routes ---
+
+// System Status & QR
 app.get('/status', (req, res) => res.json({ qr: currentQR }));
 
+// Get All Groups
 app.get('/groups', async (req, res) => {
     try {
         const chats = await client.getChats();
@@ -70,6 +70,37 @@ app.get('/groups', async (req, res) => {
     } catch (e) { res.json([]); }
 });
 
+// Fetch Messages for a Specific Group (Live Chat)
+app.get('/get-messages', async (req, res) => {
+    const { groupId } = req.query;
+    if (!groupId) return res.json([]);
+    try {
+        const chat = await client.getChatById(groupId);
+        const msgs = await chat.fetchMessages({ limit: 20 });
+        res.json(msgs.map(m => ({
+            body: m.body,
+            fromMe: m.fromMe,
+            sender: m.author || m.from
+        })));
+    } catch (e) { 
+        console.log("❌ Error fetching messages:", e.message);
+        res.json([]); 
+    }
+});
+
+// Send Manual Reply from Dashboard
+app.post('/send-message', async (req, res) => {
+    const { groupId, message } = req.body;
+    try {
+        await client.sendMessage(groupId, message);
+        res.json({ success: true });
+    } catch (e) { 
+        console.log("❌ Send Error:", e.message);
+        res.json({ success: false }); 
+    }
+});
+
+// Automation Routes
 app.post('/add-group', async (req, res) => {
     const { groupId } = req.body;
     await Group.findOneAndUpdate({ groupId }, { groupId, currentDay: 1, status: 'active' }, { upsert: true });
@@ -103,7 +134,6 @@ cron.schedule('0 10 * * *', async () => {
     }
 });
 
-// Initializing with Error Catching
 client.initialize().catch(err => console.log("❌ Init Error:", err.message));
 
 const PORT = process.env.PORT || 3000;
