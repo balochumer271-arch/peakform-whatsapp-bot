@@ -1,7 +1,7 @@
 {
   "name": "Aesthetic Academy",
   "short_name": "Aesthetic",
-  "start_url": "https://www.fitness-academy.com.pk/?utm_source=pwa",
+  "start_url": "www.fitness-academy.com.pk/?utm_source=pwa",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0000ff",
