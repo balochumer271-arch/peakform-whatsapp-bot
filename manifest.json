@@ -1,7 +1,7 @@
 {
-  "name": "Apki Website Ka Name",
+  "name": "Aesthetic Academy",
   "short_name": "App Name",
-  "start_url": "https://www.fitness-academy.com.pk/p/nav-button-3.html?m=1",
+  "start_url": "https://www.fitness-academy.com.pk",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0000ff",
