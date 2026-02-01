@@ -1,7 +1,7 @@
 {
   "name": "Aesthetic Academy",
   "short_name": "Aesthetic",
-  "start_url": "https://www.fitness-academy.com.pk/",
+  "start_url": "https://www.fitness-academy.com.pk/?utm_source=pwa",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0000ff",
@@ -17,7 +17,7 @@
       "src": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhbVfnFSZE3NCF9VfQNuMP9CGQmsGicAyJgC4VC5cdZ1mg0NApLmQmOwC-K_vDP1WJsMny2mmg07vFeK3K7sqa7GG8CndvomfXEv8SLlw-v1nbkDTbrLTSgfUnutfOjLRUI-yYqlrONUC_dlVlswNmm3iRSX-Eh4SzeU9u3_bXVfqGGsSEjVhGMOq0U3WlB/s1600/512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ]
 }
